@@ -1,0 +1,9 @@
+Import('env')
+
+env.AppendUnique( STATICLIBS =
+    env.BoostStaticLibrary( [
+        'coroutine'
+    ] )
+)
+
+env.BuildTest( 'await', 'await.cpp' )
