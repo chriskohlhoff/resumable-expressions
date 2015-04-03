@@ -1,7 +1,7 @@
 Import('env')
 
 env.AppendUnique( STATICLIBS =
-    env.BoostStaticLibrary( [
+    env.BoostStaticLibs( [
         'coroutine'
     ] )
 )
