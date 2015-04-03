@@ -1,0 +1,27 @@
+Import('env')
+
+env.AppendUnique( STATICLIBS =
+    env.BoostStaticLibrary( [
+        'coroutine'
+    ] )
+)
+
+library = env.BuildStaticLib( 'rexp', 'src/rexp/waiter.cpp' )
+
+examples = {
+
+    "await1"     : 'examples/await1.cpp',
+    "await2"     : 'examples/await2.cpp',
+    "await3"     : 'examples/await3.cpp',
+    "await4"     : 'examples/await4.cpp',
+    "generator1" : 'examples/generator1.cpp',
+    "generator2" : 'examples/generator2.cpp',
+    "generator3" : 'examples/generator3.cpp',
+    "generator4" : 'examples/generator4.cpp',
+    "generator5" : 'examples/generator5.cpp',
+    "printer"    : 'examples/printer.cpp'
+
+}
+
+for example, sources in examples.iteritems():
+    env.BuildTest( example, Split( sources ) + library )

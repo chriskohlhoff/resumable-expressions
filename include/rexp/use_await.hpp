@@ -19,7 +19,7 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
-#include "rexp/detail/waiter.hpp"
+#include "rexp/waiter.hpp"
 
 namespace rexp {
 
@@ -51,7 +51,7 @@ namespace detail
     void operator()(Args... args)
     {
       this->result_->reset(std::make_tuple(std::forward<Args>(args)...));
-      this->waiter_->notify();
+      this->waiter_->resume();
     }
   };
 
@@ -66,7 +66,7 @@ namespace detail
         *this->exception_ = std::make_exception_ptr(system_error(ec));
       else
         this->result_->reset(std::make_tuple(std::forward<Args>(args)...));
-      this->waiter_->notify();
+      this->waiter_->resume();
     }
   };
 
@@ -81,7 +81,7 @@ namespace detail
         *this->exception_ = e;
       else
         this->result_->reset(std::make_tuple(std::forward<Args>(args)...));
-      this->waiter_->notify();
+      this->waiter_->resume();
     }
   };
 
@@ -121,10 +121,9 @@ public:
   typedef decltype(rexp::detail::get_await_result(std::declval<tuple_type&>())) type;
 
   explicit async_result(rexp::detail::await_handler<Args...>& handler) :
-    this_waiter_(rexp::detail::active_waiter())
+    this_waiter_(rexp::waiter::active())
   {
     assert(this_waiter_ != nullptr);
-    this_waiter_->prepare();
     handler.waiter_ = this_waiter_->shared_from_this();
     handler.result_ = &result_;
     handler.exception_ = &exception_;
@@ -132,14 +131,14 @@ public:
 
   resumable type get()
   {
-    this_waiter_->wait();
+    this_waiter_->suspend();
     if (exception_)
       std::rethrow_exception(exception_);
     return rexp::detail::get_await_result(result_.get());
   }
 
 private:
-  rexp::detail::waiter* this_waiter_;
+  rexp::waiter* this_waiter_;
   boost::optional<tuple_type> result_;
   std::exception_ptr exception_;
 };

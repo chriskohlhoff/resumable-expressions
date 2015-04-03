@@ -13,26 +13,25 @@
 #define RESUMABLE_EXPRESSIONS_AWAIT_HPP
 
 #include <cassert>
-#include "rexp/detail/waiter.hpp"
 #include "rexp/future.hpp"
+#include "rexp/waiter.hpp"
 
 namespace rexp {
 
 template <class T>
 resumable T await(future<T> f)
 {
-  detail::waiter* this_waiter = detail::active_waiter();
+  waiter* this_waiter = waiter::active();
   assert(this_waiter != nullptr);
-  this_waiter->prepare();
 
   future<T> result;
   f.then([w = this_waiter->shared_from_this(), &result](auto f)
       {
         result = std::move(f);
-        w->notify();
+        w->resume();
       });
 
-  this_waiter->wait();
+  this_waiter->suspend();
   return result.get();
 }
 

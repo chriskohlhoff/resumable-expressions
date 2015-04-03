@@ -13,8 +13,8 @@
 #define RESUMABLE_EXPRESSIONS_SPAWN_HPP
 
 #include <type_traits>
-#include "rexp/detail/waiter.hpp"
 #include "rexp/future.hpp"
+#include "rexp/waiter.hpp"
 
 namespace rexp {
 
@@ -30,7 +30,7 @@ auto spawn(Resumable r,
   promise<typename std::result_of<Resumable()>::type> p;
   auto f = p.get_future();
 
-  detail::launch_waiter(
+  launch_waiter(
       [r = std::move(r), p = std::move(p)]() mutable
       {
         try
@@ -58,7 +58,7 @@ auto spawn(Resumable r,
   promise<typename std::result_of<Resumable()>::type> p;
   auto f = p.get_future();
 
-  detail::launch_waiter(
+  launch_waiter(
       [r = std::move(r), p = std::move(p)]() mutable
       {
         try
