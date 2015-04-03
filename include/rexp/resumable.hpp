@@ -171,7 +171,7 @@ inline void break_current_resumable()
 
 } // namespace rexp
 
-// Emulation of "resumable" keyword for marking functions.
+// Emulation of "resumable" keyword for marking resumable functions.
 #define resumable inline
 
 // Emulation of "break resumable".
