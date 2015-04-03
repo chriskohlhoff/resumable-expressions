@@ -23,7 +23,7 @@ future<int> async_bar()
   return f;
 }
 
-void foo()
+resumable void foo()
 {
   for (int i = 0; i < 10; ++i)
   {
