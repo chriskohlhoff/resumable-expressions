@@ -13,7 +13,9 @@
 #define RESUMABLE_EXPRESSIONS_RESUMABLE_HPP
 
 #include <boost/coroutine/asymmetric_coroutine.hpp>
+#include <boost/optional.hpp>
 #include <cassert>
+#include <exception>
 
 namespace rexp {
 
@@ -30,13 +32,13 @@ namespace detail
 }
 
 template <class R>
-class resumable_expression
+class resumable_object
 {
 public:
   typedef R result_type;
 
   template <class F>
-  explicit resumable_expression(F f)
+  explicit resumable_object(F f)
     : push_(
         [this, f](auto& pull)
         {
@@ -44,21 +46,21 @@ public:
           (*this->pull_)();
           try
           {
-            f();
+            this->result_.reset(f());
             this->ready_ = true;
           }
           catch (...)
           {
+            this->exception_ = std::current_exception();
             this->ready_ = true;
-            throw;
           }
         })
   {
     push_();
   }
 
-  resumable_expression(const resumable_expression&) = delete;
-  resumable_expression& operator=(const resumable_expression&) = delete;
+  resumable_object(const resumable_object&) = delete;
+  resumable_object& operator=(const resumable_object&) = delete;
 
   void resume()
   {
@@ -68,6 +70,8 @@ public:
       detail::current_resumable() = pull_;
       push_();
       detail::current_resumable() = prev;
+      if (exception_)
+        std::rethrow_exception(exception_);
     }
     catch (...)
     {
@@ -81,10 +85,82 @@ public:
     return ready_;
   }
 
+  R result()
+  {
+    return std::move(result_.get());
+  }
+
 private:
   detail::push_coroutine push_;
   detail::pull_coroutine* pull_;
   bool ready_ = false;
+  std::exception_ptr exception_;
+  boost::optional<R> result_;
+};
+
+template <>
+class resumable_object<void>
+{
+public:
+  typedef void result_type;
+
+  template <class F>
+  explicit resumable_object(F f)
+    : push_(
+        [this, f](auto& pull)
+        {
+          this->pull_ = &pull;
+          (*this->pull_)();
+          try
+          {
+            f();
+            this->ready_ = true;
+          }
+          catch (...)
+          {
+            this->exception_ = std::current_exception();
+            this->ready_ = true;
+          }
+        })
+  {
+    push_();
+  }
+
+  resumable_object(const resumable_object&) = delete;
+  resumable_object& operator=(const resumable_object&) = delete;
+
+  void resume()
+  {
+    detail::pull_coroutine* prev = detail::current_resumable();
+    try
+    {
+      detail::current_resumable() = pull_;
+      push_();
+      detail::current_resumable() = prev;
+      if (exception_)
+        std::rethrow_exception(exception_);
+    }
+    catch (...)
+    {
+      detail::current_resumable() = prev;
+      throw;
+    }
+  }
+
+  bool ready() const noexcept
+  {
+    return ready_;
+  }
+
+  void result()
+  {
+  }
+
+private:
+  detail::push_coroutine push_;
+  detail::pull_coroutine* pull_;
+  bool ready_ = false;
+  std::exception_ptr exception_;
 };
 
 inline void break_current_resumable()

@@ -67,7 +67,7 @@ namespace detail
 
   private:
     F f_;
-    resumable_expression<void> r_;
+    resumable_object<void> r_;
   };
 
   template <class F>
