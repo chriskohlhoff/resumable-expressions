@@ -12,7 +12,6 @@
 #ifndef RESUMABLE_EXPRESSIONS_AWAIT_HPP
 #define RESUMABLE_EXPRESSIONS_AWAIT_HPP
 
-#include <boost/optional.hpp>
 #include <cassert>
 #include <memory>
 #include <type_traits>
@@ -23,9 +22,6 @@ namespace rexp {
 
 namespace detail
 {
-  template <class T>
-  using optional = boost::optional<T>;
-
   struct awaiter : std::enable_shared_from_this<awaiter>
   {
     virtual ~awaiter() {}
