@@ -6,4 +6,13 @@ env.AppendUnique( STATICLIBS =
     ] )
 )
 
-env.BuildTest( 'await', 'await.cpp' )
+examples = {
+
+    "await"      : 'await.cpp',
+    "generator1" : 'generator1.cpp',
+    "printer"    : 'printer.cpp'
+
+}
+
+for example, sources in examples.iteritems():
+    env.Build( example, Split( sources ) )
