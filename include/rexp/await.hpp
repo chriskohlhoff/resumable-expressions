@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <memory>
+#include <mutex>
 #include <type_traits>
 #include "future.hpp"
 #include "resumable.hpp"
@@ -22,20 +23,51 @@ namespace rexp {
 
 namespace detail
 {
-  struct waiter : std::enable_shared_from_this<waiter>
+  inline class waiter*& active_waiter()
   {
-    virtual ~waiter() {}
+    static __thread class waiter* c;
+    return c;
+  }
+
+  class waiter : public std::enable_shared_from_this<waiter>
+  {
+  public:
+    void prepare()
+    {
+      state_ = wait_pending;
+    }
+
+    resumable void wait()
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      if (state_ != running)
+      {
+        state_ = waiting;
+        lock.unlock();
+        active_waiter() = nullptr;
+        break_resumable;
+      }
+    }
+
+    void notify()
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      bool is_waiting = (state_ == waiting);
+      state_ = running;
+      lock.unlock();
+      if (is_waiting)
+        resume();
+    }
+
+  protected:
+    ~waiter() {}
+
+  private:
     virtual void resume() = 0;
 
     std::mutex mutex_;
     enum { running, wait_pending, waiting } state_ = running;
   };
-
-  inline waiter*& active_waiter()
-  {
-    static __thread waiter* c;
-    return c;
-  }
 
   template <class F>
   class waiter_impl : public waiter
@@ -138,34 +170,16 @@ resumable T await(future<T> f)
 {
   detail::waiter* this_waiter = detail::active_waiter();
   assert(this_waiter != nullptr);
+  this_waiter->prepare();
 
   future<T> result;
-  this_waiter->state_ = detail::waiter::wait_pending;
-
   f.then([w = this_waiter->shared_from_this(), &result](auto f)
       {
-        w->mutex_.lock();
-        bool is_waiting = (w->state_ == detail::waiter::waiting);
-        w->state_ = detail::waiter::running;
-        w->mutex_.unlock();
         result = std::move(f);
-        if (is_waiting)
-          w->resume();
+        w->notify();
       });
 
-  this_waiter->mutex_.lock();
-  if (this_waiter->state_ != detail::waiter::running)
-  {
-    this_waiter->state_ = detail::waiter::waiting;
-    this_waiter->mutex_.unlock();
-    detail::active_waiter() = nullptr;
-    break_resumable;
-  }
-  else
-  {
-    this_waiter->mutex_.unlock();
-  }
-
+  this_waiter->wait();
   return result.get();
 }
 

@@ -4,6 +4,7 @@
 #include "rexp/await.hpp"
 #include "rexp/future.hpp"
 
+using rexp::await;
 using rexp::future;
 using rexp::promise;
 using rexp::spawn;

@@ -4,14 +4,9 @@ def defaults( env, toolchain, variant ):
     env.AppendUnique( INCPATH = '#/include' )
 
 cuppa.run(
-    dependencies = {
-        'asio': cuppa.header_library_dependency('asio')
-    },
     default_options = {
-        'boost-version': "latest",
-        'asio-location': "git+https://github.com/chriskohlhoff/asio",
-        'asio-include': "asio/include"
+        'boost-version': "latest"
     },
-    default_dependencies = [ 'boost', 'asio', ],
+    default_dependencies = [ 'boost' ],
     default_profiles = [ defaults ]
 )
