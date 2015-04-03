@@ -22,23 +22,26 @@ namespace rexp {
 
 namespace detail
 {
-  struct awaiter : std::enable_shared_from_this<awaiter>
+  struct waiter : std::enable_shared_from_this<waiter>
   {
-    virtual ~awaiter() {}
+    virtual ~waiter() {}
     virtual void resume() = 0;
+
+    std::mutex mutex_;
+    enum { running, wait_pending, waiting } state_ = running;
   };
 
-  inline awaiter*& active_awaiter()
+  inline waiter*& active_waiter()
   {
-    static __thread awaiter* c;
+    static __thread waiter* c;
     return c;
   }
 
   template <class F>
-  class awaiter_impl : public awaiter
+  class waiter_impl : public waiter
   {
   public:
-    explicit awaiter_impl(F f) :
+    explicit waiter_impl(F f) :
       f_(std::move(f)),
       r_([f = &f_]{ (*f)(); })
     {
@@ -46,17 +49,17 @@ namespace detail
 
     virtual void resume()
     {
-      awaiter* prev_active_awaiter = active_awaiter();
-      active_awaiter() = this;
+      waiter* prev_active_waiter = active_waiter();
+      active_waiter() = this;
       try
       {
-        while (active_awaiter() == this && !r_.ready())
+        while (active_waiter() == this && !r_.ready())
           r_.resume();
-        active_awaiter() = prev_active_awaiter;
+        active_waiter() = prev_active_waiter;
       }
       catch (...)
       {
-        active_awaiter() = prev_active_awaiter;
+        active_waiter() = prev_active_waiter;
         throw;
       }
     }
@@ -67,12 +70,10 @@ namespace detail
   };
 
   template <class F>
-  void launch_awaiter(F f)
+  void launch_waiter(F f)
   {
-    std::make_shared<detail::awaiter_impl<F>>(std::move(f))->resume();
+    std::make_shared<detail::waiter_impl<F>>(std::move(f))->resume();
   }
-
-  enum class await_state { starting, suspended, complete };
 }
 
 template <class Resumable>
@@ -87,7 +88,7 @@ auto spawn(Resumable r,
   promise<typename std::result_of<Resumable()>::type> p;
   auto f = p.get_future();
 
-  detail::launch_awaiter(
+  detail::launch_waiter(
       [r = std::move(r), p = std::move(p)]() mutable
       {
         try
@@ -115,7 +116,7 @@ auto spawn(Resumable r,
   promise<typename std::result_of<Resumable()>::type> p;
   auto f = p.get_future();
 
-  detail::launch_awaiter(
+  detail::launch_waiter(
       [r = std::move(r), p = std::move(p)]() mutable
       {
         try
@@ -135,34 +136,34 @@ auto spawn(Resumable r,
 template <class T>
 resumable T await(future<T> f)
 {
-  assert(detail::active_awaiter() != nullptr);
+  detail::waiter* this_waiter = detail::active_waiter();
+  assert(this_waiter != nullptr);
 
-  std::mutex mutex;
-  detail::await_state state = detail::await_state::starting;
   future<T> result;
+  this_waiter->state_ = detail::waiter::wait_pending;
 
-  f.then([chain = detail::active_awaiter()->shared_from_this(), &mutex, &state, &result](auto f)
+  f.then([w = this_waiter->shared_from_this(), &result](auto f)
       {
-        mutex.lock();
-        bool is_suspended = (state == detail::await_state::suspended);
-        state = detail::await_state::complete;
-        mutex.unlock();
+        w->mutex_.lock();
+        bool is_waiting = (w->state_ == detail::waiter::waiting);
+        w->state_ = detail::waiter::running;
+        w->mutex_.unlock();
         result = std::move(f);
-        if (is_suspended)
-          chain->resume();
+        if (is_waiting)
+          w->resume();
       });
 
-  mutex.lock();
-  if (state != detail::await_state::complete)
+  this_waiter->mutex_.lock();
+  if (this_waiter->state_ != detail::waiter::running)
   {
-    state = detail::await_state::suspended;
-    detail::active_awaiter() = nullptr;
-    mutex.unlock();
+    this_waiter->state_ = detail::waiter::waiting;
+    this_waiter->mutex_.unlock();
+    detail::active_waiter() = nullptr;
     break_resumable;
   }
   else
   {
-    mutex.unlock();
+    this_waiter->mutex_.unlock();
   }
 
   return result.get();
