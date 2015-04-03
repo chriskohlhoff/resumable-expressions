@@ -72,6 +72,13 @@ public:
     : impl_(std::make_shared<
         detail::generator_impl<T, G>>(std::move(g))) {}
 
+  template <class G, class Allocator>
+    generator(std::allocator_arg_t, const Allocator& a, G g)
+      : impl_(std::allocate_shared<
+          detail::generator_impl<T, G>>(a, std::move(g)))
+    {
+    }
+
   T next() { return impl_->next(); }
 
 private:
