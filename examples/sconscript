@@ -10,6 +10,7 @@ examples = {
 
     "await"      : 'await.cpp',
     "generator1" : 'generator1.cpp',
+    "generator2" : 'generator2.cpp',
     "printer"    : 'printer.cpp'
 
 }
