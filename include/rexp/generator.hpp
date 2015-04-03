@@ -16,7 +16,7 @@
 #include <exception>
 #include <memory>
 #include <type_traits>
-#include "resumable.hpp"
+#include "rexp/resumable.hpp"
 
 namespace rexp {
 
@@ -87,4 +87,4 @@ private:
 
 } // namespace rexp
 
-#endif // GENERATOR_HPP
+#endif // RESUMABLE_EXPRESSIONS_GENERATOR_HPP

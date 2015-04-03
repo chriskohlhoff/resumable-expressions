@@ -3,6 +3,7 @@
 #include <thread>
 #include "rexp/await.hpp"
 #include "rexp/future.hpp"
+#include "rexp/spawn.hpp"
 
 using rexp::await;
 using rexp::future;

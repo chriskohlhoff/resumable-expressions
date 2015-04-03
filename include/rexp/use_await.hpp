@@ -19,13 +19,9 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
-#include "future.hpp"
-#include "resumable.hpp"
+#include "rexp/detail/waiter.hpp"
 
 namespace rexp {
-
-using boost::system::error_code;
-using boost::system::system_error;
 
 constexpr struct use_await_t
 {
@@ -34,6 +30,9 @@ constexpr struct use_await_t
 
 namespace detail
 {
+  using boost::system::error_code;
+  using boost::system::system_error;
+
   template <class... Args>
   struct await_handler_base
   {

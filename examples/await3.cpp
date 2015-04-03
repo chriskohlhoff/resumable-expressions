@@ -1,9 +1,8 @@
 #include <chrono>
 #include <iostream>
-#include <thread>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include "rexp/await.hpp"
+#include "rexp/spawn.hpp"
 #include "rexp/use_await.hpp"
 
 using rexp::spawn;
@@ -26,6 +25,5 @@ resumable void print_1_to(int n)
 int main()
 {
   spawn([]{ print_1_to(10); });
-
   io_service.run();
 }

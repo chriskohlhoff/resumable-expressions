@@ -1,10 +1,9 @@
 #include <chrono>
 #include <iostream>
-#include <thread>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
-#include "rexp/await.hpp"
+#include "rexp/spawn.hpp"
 #include "rexp/use_await.hpp"
 
 using rexp::spawn;
