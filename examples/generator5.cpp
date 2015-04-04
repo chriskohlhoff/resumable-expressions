@@ -24,7 +24,7 @@ struct resumable_iterator
 };
 
 template <class OutputIterator>
-resumable void fib(OutputIterator out, int n)
+void fib(OutputIterator out, int n)
 {
   int a = 0;
   int b = 1;
