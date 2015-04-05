@@ -32,9 +32,9 @@ public:
       waiter* prev = active_waiter_;
       ~state_saver() { active_waiter_ = prev; }
     } saver;
+    active_waiter_ = this;
 
     std::lock_guard<std::mutex> lock(mutex_);
-    active_waiter_ = this;
     nested_resumption_ = false;
     do_run();
   }
@@ -82,13 +82,13 @@ namespace detail
     {
     }
 
+  private:
     virtual void do_run()
     {
       while (active() == this && !r_.ready())
         r_.resume();
     }
 
-  private:
     F f_;
     resumable_object<void> r_;
   };
