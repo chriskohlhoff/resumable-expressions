@@ -120,25 +120,23 @@ public:
   typedef typename rexp::detail::await_handler<Args...>::tuple_type tuple_type;
   typedef decltype(rexp::detail::get_await_result(std::declval<tuple_type&>())) type;
 
-  explicit async_result(rexp::detail::await_handler<Args...>& handler) :
-    this_waiter_(rexp::waiter::active())
+  explicit async_result(rexp::detail::await_handler<Args...>& handler)
   {
-    assert(this_waiter_ != nullptr);
-    handler.waiter_ = this_waiter_->shared_from_this();
+    assert(rexp::waiter::active() != nullptr);
+    handler.waiter_ = rexp::waiter::active()->shared_from_this();
     handler.result_ = &result_;
     handler.exception_ = &exception_;
   }
 
   resumable type get()
   {
-    this_waiter_->suspend();
+    rexp::waiter::active()->suspend();
     if (exception_)
       std::rethrow_exception(exception_);
     return rexp::detail::get_await_result(result_.get());
   }
 
 private:
-  rexp::waiter* this_waiter_;
   boost::optional<tuple_type> result_;
   std::exception_ptr exception_;
 };
