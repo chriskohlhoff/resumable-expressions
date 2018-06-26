@@ -179,6 +179,6 @@ inline void break_current_resumable()
 
 // Emulation of "resumable" keyword for resumable expressions.
 #define resumable_expression(obj, ...) \
-  ::rexp::resumable_object<decltype(__VA_ARGS__)> obj{[&]{ __VA_ARGS__; }}
+  ::rexp::resumable_object<decltype(__VA_ARGS__)> obj{[&]{ return __VA_ARGS__; }}
 
 #endif // RESUMABLE_EXPRESSIONS_RESUMABLE_HPP
